@@ -308,6 +308,8 @@ form { position: fixed; bottom: 0; left: 0; right: 0; padding: 1em; background: 
 #file { display: none; }
 #row { display: flex; gap: 1ch; }
 #row button[type=submit] { margin-left: auto; }
+#rec, #ptt { background: #eee; }
+#rec.active, #ptt.active { background: #e33; color: #fff; }
 .tool { color: #999; font-style: italic; }
 .tool.done { color: #2a7; font-style: normal; }
 .tool.fail { color: #c33; font-style: normal; }
@@ -325,6 +327,8 @@ form { position: fixed; bottom: 0; left: 0; right: 0; padding: 1em; background: 
     <button type=button onclick="file.click()">attach</button><input type=file id=file>
     <span id=chip></span>
     <button type=submit>send</button>
+    <button type=button id=rec onclick="toggleRec()">record</button>
+    <button type=button id=ptt>hold</button>
   </div>
 </form>
 
@@ -418,5 +422,69 @@ function line(who, text, replyTo, file) {
 
 function scroll() { window.scrollTo(0, document.body.scrollHeight) }
 input.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); form.requestSubmit() } })
+
+let recognition = null
+let recActive = false
+let recBase = ''
+function toggleRec() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition
+  if (!SR) { alert('Speech recognition not supported in this browser'); return }
+  if (recActive) { recActive = false; recognition && recognition.stop(); return }
+  const btn = document.getElementById('rec')
+  function startRec() {
+    recognition = new SR()
+    recognition.continuous = true
+    recognition.interimResults = true
+    recognition.onstart = () => { btn.classList.add('active'); btn.textContent = '⏹ stop' }
+    recognition.onend = () => {
+      if (recActive) { recBase = input.value; startRec(); return }
+      btn.classList.remove('active'); btn.textContent = 'record'
+      if (input.value.trim()) form.requestSubmit()
+    }
+    recognition.onerror = e => {
+      if (e.error === 'no-speech') return
+      recActive = false; btn.classList.remove('active'); btn.textContent = 'record'
+    }
+    recognition.onresult = e => {
+      let t = ''
+      for (let i = 0; i < e.results.length; i++) t += e.results[i][0].transcript
+      input.value = recBase ? recBase + ' ' + t : t
+    }
+    recognition.start()
+  }
+  recActive = true
+  recBase = input.value
+  startRec()
+}
+
+let pttRec = null
+const pttBtn = document.getElementById('ptt')
+function pttStart() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition
+  if (!SR) { alert('Speech recognition not supported in this browser'); return }
+  if (pttRec) return
+  pttBtn.classList.add('active')
+  const base = input.value
+  pttRec = new SR()
+  pttRec.continuous = true
+  pttRec.interimResults = true
+  pttRec.onresult = e => {
+    let t = ''
+    for (let i = 0; i < e.results.length; i++) t += e.results[i][0].transcript
+    input.value = base ? base + ' ' + t : t
+  }
+  pttRec.onend = () => {
+    pttBtn.classList.remove('active'); pttRec = null
+    if (input.value.trim()) form.requestSubmit()
+  }
+  pttRec.onerror = e => { if (e.error !== 'no-speech') { pttBtn.classList.remove('active'); pttRec = null } }
+  pttRec.start()
+}
+function pttStop() { if (pttRec) pttRec.stop() }
+pttBtn.addEventListener('mousedown', e => { e.preventDefault(); pttStart() })
+pttBtn.addEventListener('touchstart', e => { e.preventDefault(); pttStart() }, { passive: false })
+pttBtn.addEventListener('mouseup', pttStop)
+pttBtn.addEventListener('touchend', pttStop)
+pttBtn.addEventListener('mouseleave', pttStop)
 </script>
 `
