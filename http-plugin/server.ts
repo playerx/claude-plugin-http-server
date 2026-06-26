@@ -299,17 +299,41 @@ process.stderr.write(`fakechat: http://localhost:${PORT}\n`)
 
 const HTML = `<!doctype html>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>fakechat</title>
 <style>
-body { font-family: monospace; margin: 0; padding: 1em 1em 7em; }
+* { box-sizing: border-box; }
+body { font-family: monospace; margin: 0; padding: 0.75em 0.75em 9em; font-size: 16px; }
 #log { white-space: pre-wrap; word-break: break-word; }
-form { position: fixed; bottom: 0; left: 0; right: 0; padding: 1em; background: #fff; }
-#text { width: 100%; box-sizing: border-box; font: inherit; margin-bottom: 0.5em; }
+form { position: fixed; bottom: 0; left: 0; right: 0; padding: 0.75em; background: #fff; border-top: 1px solid #ddd; }
+#text { width: 100%; font: inherit; font-size: 16px; margin-bottom: 0.5em; padding: 0.6em; border: 1px solid #ccc; border-radius: 6px; resize: none; }
 #file { display: none; }
-#row { display: flex; gap: 1ch; }
-#row button[type=submit] { margin-left: auto; }
-#rec, #ptt { background: #eee; }
+#row { display: flex; gap: 0.5em; align-items: stretch; }
+#row button {
+  font: inherit;
+  font-size: 16px;
+  padding: 0.6em 1.1em;
+  min-height: 52px;
+  min-width: 52px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  touch-action: manipulation;
+  background: #e8e8e8;
+  color: #222;
+  font-weight: 600;
+  white-space: nowrap;
+}
+#row button[type=submit] {
+  margin-left: auto;
+  background: #1a73e8;
+  color: #fff;
+  padding: 0.6em 1.6em;
+}
+#row button[type=submit]:active { background: #1558c0; }
+#rec, #ptt { flex: 1; }
 #rec.active, #ptt.active { background: #e33; color: #fff; }
+#chip { align-self: center; font-size: 0.85em; color: #555; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 8em; }
 .tool { color: #999; font-style: italic; }
 .tool.done { color: #2a7; font-style: normal; }
 .tool.fail { color: #c33; font-style: normal; }
@@ -341,7 +365,7 @@ const fileIn = document.getElementById('file')
 const chip = document.getElementById('chip')
 const msgs = {}
 
-const ws = new WebSocket('ws://' + location.host + '/ws')
+const ws = new WebSocket('wss://' + location.host + '/ws')
 ws.onmessage = e => {
   const m = JSON.parse(e.data)
   if (m.type === 'msg') add(m)
